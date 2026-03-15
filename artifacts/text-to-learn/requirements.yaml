@@ -1,0 +1,10 @@
+packages:
+  "jspdf": "PDF generation for exporting lessons"
+  "html2canvas": "DOM to image capture for PDF generation"
+  "framer-motion": "Animations, loading states, and page transitions"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility to resolve Tailwind CSS class conflicts"
+images: []
+notes:
+  - using @workspace/replit-auth-web for authentication
+  - using generated API hooks from @workspace/api-client-react
