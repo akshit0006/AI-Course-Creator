@@ -45,38 +45,40 @@ export default function Lesson() {
     
     setIsDownloading(true);
     try {
-      const canvas = await html2canvas(element, { 
-        scale: 1.5,
+      const canvas = await html2canvas(element, {
+        scale: 2,
         useCORS: true,
         logging: false,
         ignoreElements: (el) => el.classList.contains('pdf-exclude'),
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
       });
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
       const { jsPDF: JsPDF } = await import('jspdf');
-      const pdf = new JsPDF({ orientation: 'p', unit: 'px', format: 'a4' });
+
+      const pdf = new JsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let position = 0;
-      let remainingHeight = imgHeight;
-      
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      remainingHeight -= pageHeight;
-      
-      while (remainingHeight > 0) {
+      const MARGIN = 10;
+      const contentWidth = pageWidth - MARGIN * 2;
+      const imgHeightMm = (canvas.height / canvas.width) * contentWidth;
+
+      let position = MARGIN;
+      let heightLeft = imgHeightMm;
+
+      pdf.addImage(imgData, 'JPEG', MARGIN, position, contentWidth, imgHeightMm);
+      heightLeft -= (pageHeight - MARGIN);
+
+      while (heightLeft > 0) {
         position -= pageHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        remainingHeight -= pageHeight;
+        pdf.addImage(imgData, 'JPEG', MARGIN, position, contentWidth, imgHeightMm);
+        heightLeft -= pageHeight;
       }
       
-      pdf.save(`${lesson?.title.replace(/\s+/g, '-') || 'lesson'}.pdf`);
+      pdf.save(`${(lesson?.title || 'lesson').replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error("Failed to generate PDF", error);
+      alert("Could not generate PDF. Please try again.");
     } finally {
       setIsDownloading(false);
     }

@@ -6,7 +6,17 @@ const SearchYoutubeQueryParams = z.object({ query: z.string().min(1) });
 
 const router: IRouter = Router();
 
-const videoCache = new Map<string, { videoId: string; title: string; thumbnail: string }>();
+const videoCache = new Map<string, { videoId: string; title: string; thumbnail: string } | null>();
+
+function extractJson(text: string): Record<string, unknown> | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+}
 
 router.get("/youtube/search", async (req, res) => {
   const parsed = SearchYoutubeQueryParams.safeParse({ query: req.query.query });
@@ -18,7 +28,12 @@ router.get("/youtube/search", async (req, res) => {
   const { query } = parsed.data;
 
   if (videoCache.has(query)) {
-    res.json(videoCache.get(query));
+    const cached = videoCache.get(query);
+    if (cached) {
+      res.json(cached);
+    } else {
+      res.json({ videoId: null, title: null, thumbnail: null });
+    }
     return;
   }
 
@@ -43,35 +58,50 @@ router.get("/youtube/search", async (req, res) => {
       }
     }
 
-    const geminiPrompt = `For the educational topic query "${query}", suggest the best YouTube video search query and a fake but realistic-looking video ID for demonstration purposes.
+    const geminiPrompt = `You are a helpful assistant that finds real YouTube educational videos.
 
-Return ONLY a JSON object like this (no markdown):
-{
-  "videoId": "dQw4w9WgXcQ",
-  "title": "Educational Video Title",
-  "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
-}
+For the topic: "${query}"
 
-Use a real popular educational YouTube video ID if you know one for this topic.`;
+Find a real, existing YouTube video that covers this educational topic. Return ONLY a raw JSON object with no markdown, no explanation:
+{"videoId":"VIDEO_ID_HERE","title":"Video Title Here","thumbnail":"https://img.youtube.com/vi/VIDEO_ID_HERE/mqdefault.jpg"}
+
+Rules:
+- Use a REAL YouTube video ID (11 characters, letters/numbers/hyphens/underscores)
+- The video must be genuinely educational and about the topic
+- Do NOT use "dQw4w9WgXcQ" which is a music video
+- Known reliable educational channels: Khan Academy, freeCodeCamp, 3Blue1Brown, Fireship, Traversy Media, MIT OpenCourseWare, Crash Course, CS50, The Coding Train
+- Only return the JSON, nothing else`;
 
     const geminiResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ role: "user", parts: [{ text: geminiPrompt }] }],
-      config: { maxOutputTokens: 256, responseMimeType: "application/json" },
+      config: { maxOutputTokens: 300 },
     });
 
-    const text = (geminiResponse.text ?? "").replace(/```json\n?|\n?```/g, "").trim();
-    const result = JSON.parse(text);
-    videoCache.set(query, result);
-    res.json(result);
+    const text = (geminiResponse.text ?? "").trim();
+    const parsed = extractJson(text);
+
+    if (
+      parsed &&
+      typeof parsed.videoId === "string" &&
+      parsed.videoId.length >= 8 &&
+      parsed.videoId !== "dQw4w9WgXcQ" &&
+      parsed.videoId !== "VIDEO_ID_HERE"
+    ) {
+      const result = {
+        videoId: parsed.videoId as string,
+        title: (parsed.title as string) || query,
+        thumbnail: `https://img.youtube.com/vi/${parsed.videoId}/mqdefault.jpg`,
+      };
+      videoCache.set(query, result);
+      res.json(result);
+    } else {
+      videoCache.set(query, null);
+      res.json({ videoId: null, title: null, thumbnail: null });
+    }
   } catch (err) {
     console.error("Error searching YouTube:", err);
-    const fallback = {
-      videoId: "dQw4w9WgXcQ",
-      title: `${query} - Educational Video`,
-      thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
-    };
-    res.json(fallback);
+    res.json({ videoId: null, title: null, thumbnail: null });
   }
 });
 

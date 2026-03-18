@@ -72,6 +72,8 @@ function VideoBlock({ block }: { block: ContentBlock }) {
     { query: { enabled: !!block.query } }
   );
 
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(block.query || '')}`;
+
   return (
     <div className="my-10 rounded-2xl overflow-hidden border border-border/50 bg-muted shadow-lg aspect-video relative group pdf-exclude">
       {isLoading ? (
@@ -83,15 +85,26 @@ function VideoBlock({ block }: { block: ContentBlock }) {
         <iframe
           className="w-full h-full absolute inset-0"
           src={`https://www.youtube.com/embed/${data.videoId}`}
-          title={data.title}
+          title={data.title ?? block.query ?? 'Educational Video'}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-card text-muted-foreground">
-          <PlayCircle className="w-16 h-16 mb-3 opacity-20" />
-          <p className="font-medium text-lg">Video resource unavailable</p>
-          <p className="text-sm opacity-70">Could not find a match for "{block.query}"</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-card text-muted-foreground gap-4">
+          <PlayCircle className="w-16 h-16 opacity-20" />
+          <div className="text-center">
+            <p className="font-medium text-lg mb-1">Video resource</p>
+            <p className="text-sm opacity-70 mb-4">"{block.query}"</p>
+            <a
+              href={searchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            >
+              <PlayCircle className="w-4 h-4" />
+              Watch on YouTube
+            </a>
+          </div>
         </div>
       )}
     </div>
