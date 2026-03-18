@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
-import { SearchYoutubeQueryParams } from "@workspace/api-zod";
+import { z } from "zod";
 import { ai } from "@workspace/integrations-gemini-ai";
+
+const SearchYoutubeQueryParams = z.object({ query: z.string().min(1) });
 
 const router: IRouter = Router();
 

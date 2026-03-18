@@ -1,8 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, coursesTable, modulesTable, lessonsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { GenerateCourseBody, GetCourseParams, DeleteCourseParams } from "@workspace/api-zod";
+import { z } from "zod";
+import { GenerateCourseBody } from "@workspace/api-zod";
 import { generateCourseOutline } from "../services/courseGenerator";
+
+const GetCourseParams = z.object({ courseId: z.number().int().positive() });
+const DeleteCourseParams = z.object({ courseId: z.number().int().positive() });
 
 const router: IRouter = Router();
 

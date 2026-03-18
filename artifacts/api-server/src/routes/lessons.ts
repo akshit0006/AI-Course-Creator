@@ -1,8 +1,11 @@
 import { Router, type IRouter } from "express";
 import { db, lessonsTable, modulesTable, coursesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { GetLessonParams, GenerateLessonContentParams } from "@workspace/api-zod";
+import { z } from "zod";
 import { generateLessonContent } from "../services/courseGenerator";
+
+const GetLessonParams = z.object({ lessonId: z.number().int().positive() });
+const GenerateLessonContentParams = z.object({ lessonId: z.number().int().positive() });
 
 const router: IRouter = Router();
 

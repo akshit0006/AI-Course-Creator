@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Sparkles, Download, ArrowRight, Loader2, CheckCircle2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentBlockRenderer } from "@/components/lesson/ContentBlocks";
-import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
 
@@ -46,18 +45,35 @@ export default function Lesson() {
     
     setIsDownloading(true);
     try {
-      // Add a class temporarily to hide elements not suitable for PDF if needed
       const canvas = await html2canvas(element, { 
-        scale: 2, 
+        scale: 1.5,
         useCORS: true,
-        ignoreElements: (el) => el.classList.contains('pdf-exclude')
+        logging: false,
+        ignoreElements: (el) => el.classList.contains('pdf-exclude'),
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      const { jsPDF: JsPDF } = await import('jspdf');
+      const pdf = new JsPDF({ orientation: 'p', unit: 'px', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      let position = 0;
+      let remainingHeight = imgHeight;
+      
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      remainingHeight -= pageHeight;
+      
+      while (remainingHeight > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+      }
+      
       pdf.save(`${lesson?.title.replace(/\s+/g, '-') || 'lesson'}.pdf`);
     } catch (error) {
       console.error("Failed to generate PDF", error);
