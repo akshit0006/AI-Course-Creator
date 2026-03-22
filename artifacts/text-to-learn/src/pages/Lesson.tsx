@@ -3,16 +3,14 @@ import { useRoute, Link } from "wouter";
 import { useGetCourse, useGetLesson, useGenerateLessonContent, getGetLessonQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Sparkles, Download, ArrowRight, Loader2, CheckCircle2, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Download, ArrowRight, CheckCircle2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentBlockRenderer } from "@/components/lesson/ContentBlocks";
-import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
 
 export default function Lesson() {
   const [match, params] = useRoute("/courses/:courseId/lessons/:lessonId");
   const queryClient = useQueryClient();
-  const [isDownloading, setIsDownloading] = useState(false);
   
   const courseId = params?.courseId ? parseInt(params.courseId) : 0;
   const lessonId = params?.lessonId ? parseInt(params.lessonId) : 0;
@@ -39,49 +37,8 @@ export default function Lesson() {
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
-  const handleDownload = async () => {
-    const element = document.getElementById('lesson-content');
-    if (!element) return;
-    
-    setIsDownloading(true);
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        ignoreElements: (el) => el.classList.contains('pdf-exclude'),
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
-      const { jsPDF: JsPDF } = await import('jspdf');
-
-      const pdf = new JsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const MARGIN = 10;
-      const contentWidth = pageWidth - MARGIN * 2;
-      const imgHeightMm = (canvas.height / canvas.width) * contentWidth;
-
-      let position = MARGIN;
-      let heightLeft = imgHeightMm;
-
-      pdf.addImage(imgData, 'JPEG', MARGIN, position, contentWidth, imgHeightMm);
-      heightLeft -= (pageHeight - MARGIN);
-
-      while (heightLeft > 0) {
-        position -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', MARGIN, position, contentWidth, imgHeightMm);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save(`${(lesson?.title || 'lesson').replace(/\s+/g, '-')}.pdf`);
-    } catch (error) {
-      console.error("Failed to generate PDF", error);
-      alert("Could not generate PDF. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
+  const handleDownload = () => {
+    window.print();
   };
 
   if (courseLoading || lessonLoading) {
@@ -195,11 +152,10 @@ export default function Lesson() {
                   <Button 
                     variant="outline" 
                     onClick={handleDownload} 
-                    disabled={isDownloading} 
                     className="shrink-0 rounded-xl hover-elevate bg-card border-border/80 shadow-sm pdf-exclude h-11 px-5"
                   >
-                    {isDownloading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-                    {isDownloading ? "Saving..." : "Save PDF"}
+                    <Download className="w-4 h-4 mr-2" />
+                    Save PDF
                   </Button>
                 </div>
 
