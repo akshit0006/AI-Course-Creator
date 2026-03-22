@@ -301,3 +301,44 @@
     inset: -1px;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #lesson-content,
+  #lesson-content * {
+    visibility: visible;
+  }
+
+  #lesson-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 24px;
+    background: white !important;
+    color: black !important;
+  }
+
+  .pdf-exclude {
+    display: none !important;
+  }
+
+  pre, code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    background: #f3f4f6 !important;
+    color: #111 !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  a {
+    color: #2563eb !important;
+  }
+
+  @page {
+    margin: 15mm;
+  }
+}
